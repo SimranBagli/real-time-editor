@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Editor</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        textarea { width: 80%; height: 300px; margin-top: 20px; }
+        input, button { margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Real-Time Collaborative Editor</h1>
+    <input type="text" id="docId" placeholder="Enter Document ID">
+    <button onclick="connectToDocument()">Connect</button>
+    <button onclick="createDocument()">Create New Document</button>
+    <textarea id="editor" disabled></textarea>
+
+    <script>
+        let socket;
+        let docId;
+        const editor = document.getElementById("editor");
+
+        async function createDocument() {
+            const response = await fetch("/documents", { method: "POST" });
+            const data = await response.json();
+            document.getElementById("docId").value = data.document_id;
+            connectToDocument();
+        }
+
+        async function connectToDocument() {
+            docId = document.getElementById("docId").value;
+            if (!docId) return alert("Enter a valid document ID");
+            
+            const response = await fetch(`/documents/${docId}`);
+            const data = await response.json();
+            if (data.error) return alert("Document not found");
+            
+            editor.value = data.content;
+            editor.disabled = false;
+            
+            socket = new WebSocket(`ws://${window.location.host}/ws/documents/${docId}`);
+            
+            socket.onmessage = event => {
+                const message = JSON.parse(event.data);
+                editor.value = message.content;
+            };
+            
+            editor.addEventListener("input", () => {
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ content: editor.value }));
+                }
+            });
+        }
+    </script>
+</body>
+</html>
