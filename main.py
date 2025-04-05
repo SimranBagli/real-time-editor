@@ -7,7 +7,6 @@ import os
 
 app = FastAPI()
 
-# Serve static files (HTML, JS, CSS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # In-memory document storage
